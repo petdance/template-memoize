@@ -1,0 +1,40 @@
+-- test --
+[% BLOCK greeting %]
+Hello included [% name %]
+[% END %]
+[% SET name = 'World' %]
+[% INCLUDE greeting +%]
+[% SET name = 'Universe' %]
+[% INCLUDE greeting %]
+-- expect --
+Hello included World
+Hello included Universe
+-- test --
+[% BLOCK greeting %]
+Hello included inline [% name %]
+[% END %]
+[% INCLUDE greeting name = 'World' +%]
+[% INCLUDE greeting name = 'Universe' %]
+-- expect --
+Hello included inline World
+Hello included inline Universe
+-- test --
+[% BLOCK greeting %]
+Hello processed [% name %]
+[% END %]
+[% SET name = 'World' %]
+[% PROCESS greeting +%]
+[% SET name = 'Universe' %]
+[% PROCESS greeting %]
+-- expect --
+Hello processed World
+Hello processed Universe
+-- test --
+[% BLOCK greeting %]
+Hello processed inline [% name %]
+[% END %]
+[% PROCESS greeting name = 'World' +%]
+[% PROCESS greeting name = 'Universe' %]
+-- expect --
+Hello processed inline World
+Hello processed inline Universe

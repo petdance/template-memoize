@@ -4,8 +4,6 @@ use 5.010;
 use strict;
 use warnings;
 
-use Template::Context::Memoize;
-
 use File::Slurp;
 use Template::Test;
 
@@ -18,7 +16,7 @@ MAIN: {
     my $context = Template::Context::Memoize->new( \%args );
 
     my $test_cases = read_file( 't/basic.txt' );
-    test_expect( $test_cases, { CONTEXT => $context } );
+    test_expect( $test_cases, { %args } );
 }
 
 
