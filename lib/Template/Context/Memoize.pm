@@ -113,6 +113,7 @@ sub _cached_action {
 
     my $result;
     my $memoize_args = $params->{memoize};
+
     if ( defined $memoize_args ) {
         my $key = ref($template) ? $template->name : $template;
         $key = join(
