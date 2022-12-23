@@ -26,40 +26,19 @@ MAIN: {
 
 exit 0;
 
-
-#------------------------------------------------------------------------
-# test input
-#------------------------------------------------------------------------
+# XXX Tests to test
+#
+# Test that process only gets done once as noted by lack of side effects.
 
 __DATA__
-[% BLOCK cache_me %]
-Hello
-[% SET change_me = 'after' %]
-[% END %]
-[% SET change_me = 'before' %]
-[% PROCESS cache_me %]
-[% change_me %]
--- expect --
-Hello
-after
 -- test --
-[% BLOCK cache_me %]
-Hello
-[% SET change_me = 'after' %]
+[% BLOCK greeting %]
+Hello [% name %]
 [% END %]
-[% SET change_me = 'before' %]
-[% INCLUDE cache_me %]
-[% change_me %]
--- expect --
-Hello
-before
--- test --
-[% BLOCK cache_me %]
- Hello [% name %]
-[% END %]
-[% SET name = 'Suzanne' %]
-[% PROCESS cache_me name => name %]
 [% SET name = 'World' %]
-[% PROCESS cache_me name => name %]
+[% PROCESS greeting +%]
+[% SET name = 'Universe' %]
+[% PROCESS greeting %]
 -- expect --
- Hello Suzanne Hello World
+Hello World
+Hello Universe
