@@ -1,4 +1,4 @@
-package Template::Context::Cacheable;
+package Template::Context::Memoize;
 
 use warnings;
 use strict;
@@ -76,7 +76,7 @@ sub new {
         $cache = CHI->new( %{$cache_params} );
     }
 
-    my $self = $class->SUPER::new( $parms );
+    my $self = $class->SUPER::new( $params );
 
     $self->{cache} = $cache;
 
