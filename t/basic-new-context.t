@@ -6,9 +6,9 @@ use warnings;
 
 use Template::Context::Memoize;
 
-use File::Slurp;
 use Template::Test;
 
+# Basic test using the new context object but no memoization.
 
 MAIN: {
     my %args = (
@@ -17,7 +17,9 @@ MAIN: {
     );
     my $context = Template::Context::Memoize->new( \%args );
 
-    my $test_cases = read_file( 't/basic.txt' );
+    open( my $fh, '<', 't/basic.txt' ) or die;
+    my $test_cases = join( '', <$fh> );
+    close $fh;
     test_expect( $test_cases, { CONTEXT => $context } );
 }
 
