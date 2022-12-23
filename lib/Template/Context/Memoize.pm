@@ -111,32 +111,39 @@ sub process {
 sub _cached_action {
     my ( $self, $action, $template, $params ) = @_;
 
+    my $result;
     my $memoize_args = $params->{memoize};
-    my $key;
-
     if ( defined $memoize_args ) {
+        my $key = ref($template) ? $template->name : $template;
         $key = join(
             ':',
             (
-                $template,
+                $key,
                 map { "$_=" . ($memoize_args->{$_}//'') } sort keys %{$memoize_args}
             )
         );
+
+        use Carp::Always;
+        $result = $self->{cache}->get($key);
+        if ( !defined($result) ) {
+            if ( $action eq 'process' ) {
+                $result = $self->SUPER::process( $template, $params, 0 );
+            }
+            else {
+                $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
+            }
+            $self->{cache}->set( $key, $result ); # XXX Allow other args to set?
+        }
     }
     else {
-        $key = $template;
-    }
-
-    my $result = $self->{cache}->get($key);
-    if ( !defined($result) ) {
         if ( $action eq 'process' ) {
-            $result = $self->SUPER::process( $template );
+            $result = $self->SUPER::process( $template, $params, 0 );
         }
         else {
-            $result = $self->SUPER::include( $template );
+            $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
         }
-        $self->{cache}->set( $key, $result ); # XXX Allow other args to set?
     }
+
 
     return $result;
 }

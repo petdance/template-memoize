@@ -13,14 +13,16 @@ $Template::Test::DEBUG = 1;
 $Template::Test::PRESERVE = 1;
 
 
-MAIN: {
+MEMOIZE: {
     my $context = Template::Context::Memoize->new;
 
-    test_expect(\*DATA, {
-        INTERPOLATE => 1,
-        POST_CHOMP => 1,
-        #        CONTEXT => $context,
-    });
+    test_expect(\*DATA,
+        {
+            POST_CHOMP => 1,
+            TRIM => 1,
+            CONTEXT    => $context,
+        }
+    );
 }
 
 
