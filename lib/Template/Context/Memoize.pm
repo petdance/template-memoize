@@ -86,9 +86,38 @@ sub new {
 
 =head1 METHODS
 
-=head2 process( $template, @args )
+=head2 process( $template [ , \%params ] )
 
-=head2 include( $template, @args )
+Processes the C<$template> with the passed C<@args>. However, if one of the
+C<%params> keys is "memoize", then memoization happens.
+
+The key for the memoization cache is based on the template name and the key/value pairs in C<%params>.
+
+In the template, it looks like this.
+
+    [% PROCESS greeting memoize => {} %]
+
+In this example, the cache key is simplys "greeting".
+
+Setting the key/value pairs lets you specify the values you want to memoize
+on.  In the example below, the cache key is "greeting:firstname=Fred:state=IL".
+
+    [% PROCESS greeting memoize => { state => 'IL', firstname => 'Fred' } %]
+
+These key/value pairs are passed in to the template as if you called:
+
+    [% PROCESS greeting state => 'IL', firstname => 'Fred' %]
+
+You can override the key/value pairs in the memoize argument by specifying
+them outside of the memoize argument. For example:
+
+    [% PROCESS greeting memoize => { state => 'IL', firstname => 'Fred' }, firstname => 'Barney' %]
+
+would have a cache key with "firstname=Fred" but would pass "firstname=Barney" into the template.
+
+=head2 include( $template, \%params )
+
+Operates exactly like C<proces>, but localizes the variables first.
 
 =head2 insert( $template )
 
@@ -112,17 +141,20 @@ sub _cached_action {
     my ( $self, $action, $template, $params ) = @_;
 
     my $result;
-    my $memoize_args = $params->{memoize};
 
-    if ( defined $memoize_args ) {
+    $params = { %{$params // {}} };
+    my $memoize_kv = delete $params->{memoize};
+
+    if ( defined $memoize_kv ) {
         my $key = ref($template) ? $template->name : $template;
         $key = join(
             ':',
             (
                 $key,
-                map { "$_=" . ($memoize_args->{$_}//'') } sort keys %{$memoize_args}
+                map { "$_=" . ($memoize_kv->{$_}//'') } sort keys %{$memoize_kv}
             )
         );
+        $params = { %{$memoize_kv}, %{$params} };
 
         use Carp::Always;
         $result = $self->{cache}->get($key);
@@ -133,7 +165,7 @@ sub _cached_action {
             else {
                 $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
             }
-            $self->{cache}->set( $key, $result ); # XXX Allow other args to set?
+            $self->{cache}->set( $key, $result );
         }
     }
     else {
