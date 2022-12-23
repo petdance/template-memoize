@@ -90,7 +90,56 @@ sub new {
 
 =head2 include( $template, @args )
 
+=head2 insert( $template )
+
+There is no overridden insert method because it just pulls in a static file anyway.
+
 =cut
+
+sub include {
+    my $self = shift;
+    $self->_cached_action( 'include', @_ );
+}
+
+
+sub process {
+    my $self = shift;
+    $self->_cached_action( 'process', @_ );
+}
+
+
+sub _cached_action {
+    my ( $self, $action, $template, $params ) = @_;
+
+    my $memoize_args = $params->{memoize};
+    my $key;
+
+    if ( defined $memoize_args ) {
+        $key = join(
+            ':',
+            (
+                $template,
+                map { "$_=" . ($memoize_args->{$_}//'') } sort keys %{$memoize_args}
+            )
+        );
+    }
+    else {
+        $key = $template;
+    }
+
+    my $result = $self->{cache}->get($key);
+    if ( !defined($result) ) {
+        if ( $action eq 'process' ) {
+            $result = $self->SUPER::process( $template );
+        }
+        else {
+            $result = $self->SUPER::include( $template );
+        }
+        $self->{cache}->set( $key, $result ); # XXX Allow other args to set?
+    }
+
+    return $result;
+}
 
 
 =head1 AUTHOR

@@ -5,18 +5,19 @@ use strict;
 use 5.010;
 use experimental 'signatures';
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 use Template;
 use Template::Context::Memoize;
 
-$Template::Config::CONTEXT = 'Template::Context::Memoize';
 
-MAIN: {
-    my $template = Template->new();
+DEFAULT_CACHE: {
+    my $context = Template::Context::Memoize->new();
+    isa_ok( $context, 'Template::Context::Memoize' );
+    isa_ok( $context->{cache}, 'CHI::Driver::File__WITH__CHI::Driver::Role::Universal' );
+
+    my $template = Template->new({ CONTEXT => $context });
     isa_ok( $template, 'Template' );
-
-    isa_ok( $template->context, 'Template::Context::Memoize' );
 }
 
 
