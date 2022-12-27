@@ -37,6 +37,7 @@ C<memoize> argument is passed, then the template is PROCESSed like normal.
 
 use parent 'Template::Context';
 use CHI;
+use Time::HiRes qw( time );
 
 
 =head1 CONSTRUCTOR
@@ -48,6 +49,8 @@ Arguments for the context.
 If C<cache> is passed, then that's the cache object that will be used.
 
 If C<cache_params> is passed, a new CHI cache object is created with those parms.
+
+If C<profiling> is passed and true, profiling stats will be shown after each include or process.
 
 All other parms are passed to the parent constructor.
 
@@ -79,6 +82,12 @@ sub new {
     my $self = $class->SUPER::new( $params );
 
     $self->{cache} = $cache;
+    my $profiling = delete $params->{profiling};
+    if ( defined $profiling ) {
+        $self->{profiler_stack} = [];
+        $self->{profiler_totals} = {};
+        $self->{profiling} = $profiling;
+    }
 
     return $self;
 }
@@ -140,30 +149,39 @@ sub process {
 sub _cached_action {
     my ( $self, $action, $template, $params ) = @_;
 
+    my $template_name = ref($template) ? $template->name : $template;
+
+    if ( $self->{profiling} ) {
+        # Each stack entry has: [ inclusive start time, exclusive start time ]
+        my $start_time = time;
+        push @{$self->{profiler_stack}}, [$start_time, $start_time];
+    }
+
     my $result;
 
     $params = { %{$params // {}} };
     my $memoize_kv = delete $params->{memoize};
 
     if ( defined $memoize_kv ) {
-        my $key = ref($template) ? $template->name : $template;
-        $key = join(
+        my $key = join(
             ':',
             (
-                $key,
+                $template_name,
                 map { "$_=" . ($memoize_kv->{$_}//'') } sort keys %{$memoize_kv}
             )
         );
         $params = { %{$memoize_kv}, %{$params} };
 
-        use Carp::Always;
         $result = $self->{cache}->get($key);
         if ( !defined($result) ) {
             if ( $action eq 'process' ) {
                 $result = $self->SUPER::process( $template, $params, 0 );
             }
-            else {
+            elsif ( $action eq 'include' ) {
                 $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
+            }
+            else {
+                die "Invalid action $action";
             }
             $self->{cache}->set( $key, $result );
         }
@@ -172,13 +190,61 @@ sub _cached_action {
         if ( $action eq 'process' ) {
             $result = $self->SUPER::process( $template, $params, 0 );
         }
-        else {
+        elsif ( $action eq 'include' ) {
             $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
+        }
+        else {
+            die "Invalid action $action";
         }
     }
 
+    if ( $self->{profiling} ) {
+        my $totals = $self->{profiler_totals};
+        my $stack = $self->{profiler_stack};
+
+        # Update counts now that the work is done.
+        my $time = time;
+        my $frame = pop @{$stack};
+
+        # Totals counts are:
+        # 0 - exclusive seconds
+        # 1 - inclusive seconds
+        # 2 - count of calls
+        $totals->{$template_name}[0] += $time - $frame->[0];
+        $totals->{$template_name}[1] += $time - $frame->[1];
+        ++$totals->{$template_name}[2];
+        for my $parent (@{$stack}) {
+            $parent->[0] += $time - $frame->[0];
+        }
+
+        if ( !@{$stack} ) {
+            $self->_dump_profiler_stack( $template_name );
+        }
+    }
 
     return $result;
+}
+
+
+sub _dump_profiler_stack {
+    my $self = shift;
+    my $template = shift;
+
+    my $totals = $self->{profiler_totals};
+    my $stack = $self->{profiler_stack};
+
+    my $total_time = 0;
+    print STDERR "-- $template at ". localtime, ":\n";
+    for my $i ( sort { $totals->{$a}[1] cmp $totals->{$b}[1] } keys %{$totals} ) {
+        my ($ex_secs, $in_secs, $count) = @{$totals->{$i}};
+        printf STDERR "%3d %9.3f %9.3f %s\n", $count, $ex_secs * 1_000, $in_secs * 1_000, $i;
+        $total_time += $ex_secs;
+    }
+    printf STDERR "%13.3f ms Total\n", $total_time * 1_000;
+    print STDERR "-- end\n";
+    $self->{profiler_stack} = [];
+
+    return;
 }
 
 
