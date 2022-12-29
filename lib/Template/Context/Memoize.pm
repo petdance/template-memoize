@@ -233,15 +233,20 @@ sub _dump_profiler_stack {
     my $totals = $self->{profiler_totals};
     my $stack = $self->{profiler_stack};
 
+    my $ntemplates = 0;
+    my $ncalls = 0;
     my $total_time = 0;
     print STDERR "-- $template at ". localtime, ":\n";
     for my $i ( sort { $totals->{$a}[1] cmp $totals->{$b}[1] } keys %{$totals} ) {
         my ($ex_secs, $in_secs, $count) = @{$totals->{$i}};
-        printf STDERR "%3d %9.3f %9.3f %s\n", $count, $ex_secs * 1_000, $in_secs * 1_000, $i;
+        my $count_str = $count > 1 ? sprintf('%4d', $count) : '    ';
+        printf STDERR "%4s %9.3f %9.3f %s\n", $count_str, $ex_secs * 1_000, $in_secs * 1_000, $i;
         $total_time += $ex_secs;
+        $ncalls += $count;
+        ++$ntemplates;
     }
-    printf STDERR "%13.3f ms Total\n", $total_time * 1_000;
-    print STDERR "-- end\n";
+    printf STDERR "%4d calls for %9.3f ms in %d templates\n", $ncalls, $total_time * 1_000, $ntemplates;
+    print STDERR "-- end $template\n";
     $self->{profiler_stack} = [];
 
     return;
