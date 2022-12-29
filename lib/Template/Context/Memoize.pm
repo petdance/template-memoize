@@ -174,28 +174,12 @@ sub _cached_action {
 
         $result = $self->{cache}->get($key);
         if ( !defined($result) ) {
-            if ( $action eq 'process' ) {
-                $result = $self->SUPER::process( $template, $params, 0 );
-            }
-            elsif ( $action eq 'include' ) {
-                $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
-            }
-            else {
-                die "Invalid action $action";
-            }
+            $result = $self->SUPER::process( $template, $params, $action eq 'include' );
             $self->{cache}->set( $key, $result );
         }
     }
     else {
-        if ( $action eq 'process' ) {
-            $result = $self->SUPER::process( $template, $params, 0 );
-        }
-        elsif ( $action eq 'include' ) {
-            $result = $self->SUPER::process( $template, $params, 'Localize me from Template::Context::Memoize' );
-        }
-        else {
-            die "Invalid action $action";
-        }
+        $result = $self->SUPER::process( $template, $params, $action eq 'include' );
     }
 
     if ( $self->{profiling} ) {
@@ -237,7 +221,7 @@ sub _dump_profiler_stack {
     my $ncalls = 0;
     my $total_time = 0;
     print STDERR "-- $template at ". localtime, ":\n";
-    for my $i ( sort { $totals->{$a}[1] cmp $totals->{$b}[1] } keys %{$totals} ) {
+    for my $i ( sort { $totals->{$a}[1] <=> $totals->{$b}[1] } keys %{$totals} ) {
         my ($ex_secs, $in_secs, $count) = @{$totals->{$i}};
         my $count_str = $count > 1 ? sprintf('%4d', $count) : '    ';
         printf STDERR "%4s %9.3f %9.3f %s\n", $count_str, $ex_secs * 1_000, $in_secs * 1_000, $i;
