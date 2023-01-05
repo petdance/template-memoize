@@ -203,6 +203,8 @@ sub _cached_action {
 
         if ( !@{$stack} ) {
             $self->_dump_profiler_stack( $template_name );
+            $self->{profiler_stack} = [];
+            $self->{profiler_totals} = {};
         }
     }
 
@@ -231,7 +233,6 @@ sub _dump_profiler_stack {
     }
     printf STDERR "%4d calls for %9.3f ms in %d templates\n", $ncalls, $total_time * 1_000, $ntemplates;
     print STDERR "-- end $template\n";
-    $self->{profiler_stack} = [];
 
     return;
 }
