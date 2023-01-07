@@ -1,9 +1,14 @@
 Changes
 lib/Template/Context/Memoize.pm
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST
 README
 t/00-load.t
+t/basic-new-context.t
+t/basic-no-context.t
+t/construct.t
 t/manifest.t
+t/memoize.t
 t/pod-coverage.t
 t/pod.t
+t/replace.t

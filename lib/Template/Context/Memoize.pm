@@ -182,6 +182,13 @@ sub _cached_action {
         $result = $self->SUPER::process( $template, $params, $action eq 'include' );
     }
 
+    my $replace_kv = delete $params->{replace};
+    if ( defined $replace_kv ) {
+        while ( my ($from, $to) = each %{$replace_kv} ) {
+            $result =~ s/\Q$from/$to/gsm;
+        }
+    }
+
     if ( $self->{profiling} ) {
         my $totals = $self->{profiler_totals};
         my $stack = $self->{profiler_stack};
@@ -244,7 +251,7 @@ Andy Lester, C<< andy@petdance.com >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2022 Andy Lester.
+Copyright 2023 Andy Lester.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the Artistic License v2.0.
